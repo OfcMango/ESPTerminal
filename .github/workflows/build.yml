@@ -21,15 +21,33 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools, platforms;android-34, build-tools;34.0.0'
+          packages: |
+            platform-tools
+            platforms;android-34
+            build-tools;34.0.0
 
-      - name: Build debug APK
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build APK
+        shell: bash
         run: |
-          chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon
+          if [ -f build.gradle.kts ]; then
+            gradle assembleDebug --no-daemon
+          elif [ -f ESPTerminal/build.gradle.kts ]; then
+            gradle -p ESPTerminal assembleDebug --no-daemon
+          else
+            echo "ERROR: Could not find the Android project build.gradle.kts"
+            exit 1
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ESPTerminal-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            ESPTerminal/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
