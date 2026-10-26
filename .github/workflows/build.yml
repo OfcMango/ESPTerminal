@@ -20,11 +20,16 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          packages: |
-            platform-tools
-            platforms;android-34
-            build-tools;34.0.0
+
+      - name: Accept Android SDK licenses
+        shell: bash
+        run: |
+          set +o pipefail
+          yes | sdkmanager --licenses
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -34,20 +39,22 @@ jobs:
       - name: Build APK
         shell: bash
         run: |
-          if [ -f build.gradle.kts ]; then
-            gradle assembleDebug --no-daemon
-          elif [ -f ESPTerminal/build.gradle.kts ]; then
-            gradle -p ESPTerminal assembleDebug --no-daemon
+          if [ -f ESPTerminal/app/build.gradle.kts ]; then
+            PROJECT_DIR="ESPTerminal"
+          elif [ -f app/build.gradle.kts ]; then
+            PROJECT_DIR="."
           else
-            echo "ERROR: Could not find the Android project build.gradle.kts"
+            echo "Android project not found. Check repository folders."
             exit 1
           fi
+
+          gradle -p "$PROJECT_DIR" assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ESPTerminal-apk
           path: |
-            app/build/outputs/apk/debug/app-debug.apk
             ESPTerminal/app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
